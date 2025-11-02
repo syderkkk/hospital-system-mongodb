@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Gestión de Citas Médicas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .animate-slide-down {
+      animation: slideDown 0.3s ease-out;
+    }
+
+    .animate-fade-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      min-width: 300px;
+      animation: slideDown 0.3s ease-out;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+
+<!-- Notificaciones -->
+<div id="notificaciones"></div>
+
+<!-- Header -->
+<header class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+      <div class="flex items-center gap-3">
+        <div class="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-xl shadow-lg">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-gray-900">Sistema de Gestión Hospitalaria</h1>
+          <p class="text-xs text-gray-500">Módulo de Citas Médicas</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="hidden md:flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-lg">
+          <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+          <span class="text-sm font-medium text-blue-700"><span id="totalCitas">0</span> Citas</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Tabs Navigation -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
+    <div class="flex">
+      <button onclick="cambiarTab('lista')" id="tab-lista" class="flex-1 px-6 py-4 font-semibold transition-all duration-200 bg-blue-600 text-white">
+        <div class="flex items-center justify-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+          <span>Lista de Citas</span>
+        </div>
+      </button>
+      <button onclick="cambiarTab('nueva')" id="tab-nueva" class="flex-1 px-6 py-4 font-semibold transition-all duration-200 text-gray-600 hover:bg-gray-50">
+        <div class="flex items-center justify-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          <span>Nueva Cita</span>
+        </div>
+      </button>
+      <button onclick="cambiarTab('estadisticas')" id="tab-estadisticas" class="flex-1 px-6 py-4 font-semibold transition-all duration-200 text-gray-600 hover:bg-gray-50">
+        <div class="flex items-center justify-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+          </svg>
+          <span>Estadísticas</span>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Contenido - Lista de Citas -->
+  <div id="content-lista" class="tab-content active">
+    <!-- Filtros -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+      <div class="flex items-center gap-2 mb-5">
+        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+        </svg>
+        <h2 class="text-lg font-bold text-gray-900">Filtros de Búsqueda</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="lg:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Búsqueda General</label>
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            <input
+                    type="text"
+                    id="filtroBusqueda"
+                    placeholder="Buscar por paciente o médico..."
+                    class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    oninput="aplicarFiltros()"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+          <select id="filtroEstado" onchange="aplicarFiltros()" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+            <option value="">Todos</option>
+            <option value="programada">Programada</option>
+            <option value="atendida">Atendida</option>
+            <option value="cancelada">Cancelada</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
+          <input type="date" id="filtroFecha" onchange="aplicarFiltros()" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Paciente</label>
+          <select id="filtroPaciente" onchange="aplicarFiltros()" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+            <option value="">Todos</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla de Citas -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">ID</th>
+            <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Paciente</th>
+            <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Médico</th>
+            <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Fecha</th>
+            <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Hora</th>
+            <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Estado</th>
+            <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Acciones</th>
+          </tr>
+          </thead>
+          <tbody id="tablaCitas" class="bg-white divide-y divide-gray-200">
+          <tr>
+            <td colspan="7" class="px-6 py-12 text-center">
+              <div class="flex flex-col items-center gap-3">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                <span class="text-gray-500">Cargando citas...</span>
+              </div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenido - Nueva Cita -->
+  <div id="content-nueva" class="tab-content">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="bg-blue-100 p-3 rounded-xl">
+          <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-900">Registrar Nueva Cita</h2>
+      </div>
+
+      <form id="formNuevaCita" onsubmit="guardarCita(event)" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Paciente <span class="text-red-500">*</span>
+            </label>
+            <select id="nuevaCitaPaciente" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+              <option value="">Seleccione un paciente</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Médico <span class="text-red-500">*</span>
+            </label>
+            <select id="nuevaCitaMedico" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+              <option value="">Seleccione un médico</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Fecha <span class="text-red-500">*</span>
+            </label>
+            <input type="date" id="nuevaCitaFecha" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Hora <span class="text-red-500">*</span>
+            </label>
+            <input type="time" id="nuevaCitaHora" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Motivo de la Consulta
+            </label>
+            <textarea id="nuevaCitaMotivo" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none" placeholder="Describa el motivo de la consulta..."></textarea>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4">
+          <button type="button" onclick="limpiarFormulario()" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-semibold">
+            Limpiar
+          </button>
+          <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all font-semibold shadow-lg hover:shadow-xl">
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              Guardar Cita
+            </div>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Contenido - Estadísticas -->
+  <div id="content-estadisticas" class="tab-content">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-4">
+          <div class="bg-blue-100 p-3 rounded-xl">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+          </div>
+          <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+          </svg>
+        </div>
+        <p class="text-sm text-gray-600 font-medium mb-1">Total Citas</p>
+        <p id="statTotal" class="text-3xl font-bold text-gray-900">0</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-4">
+          <div class="bg-amber-100 p-3 rounded-xl">
+            <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <p class="text-sm text-gray-600 font-medium mb-1">Programadas</p>
+        <p id="statProgramadas" class="text-3xl font-bold text-amber-600">0</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-4">
+          <div class="bg-emerald-100 p-3 rounded-xl">
+            <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <p class="text-sm text-gray-600 font-medium mb-1">Atendidas</p>
+        <p id="statAtendidas" class="text-3xl font-bold text-emerald-600">0</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-4">
+          <div class="bg-rose-100 p-3 rounded-xl">
+            <svg class="w-6 h-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <p class="text-sm text-gray-600 font-medium mb-1">Canceladas</p>
+        <p id="statCanceladas" class="text-3xl font-bold text-rose-600">0</p>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+      <h3 class="text-xl font-bold text-gray-900 mb-6">Distribución de Citas por Estado</h3>
+      <div id="graficoEstados" class="space-y-6">
+        <!-- Se llenará dinámicamente -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Reprogramar -->
+<div id="modalReprogramar" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-slide-down">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="bg-blue-100 p-2 rounded-xl">
+        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+      </div>
+      <h3 class="text-xl font-bold text-gray-900">Reprogramar Cita</h3>
+    </div>
+    <form id="formReprogramar" onsubmit="reprogramarCita(event)">
+      <input type="hidden" id="editarCitaId">
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Nueva Fecha</label>
+          <input type="date" id="editarCitaFecha" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Nueva Hora</label>
+          <input type="time" id="editarCitaHora" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 mt-6">
+        <button type="button" onclick="cerrarModal()" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-semibold">
+          Cancelar
+        </button>
+        <button type="submit" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-semibold shadow-md hover:shadow-lg">
+          Guardar Cambios
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const API_URL = 'http://localhost:8080/api';
+  let citasData = [];
+  let pacientesData = [];
+  let medicosData = [];
+
+  // Inicialización
+  document.addEventListener('DOMContentLoaded', () => {
+    cargarDatos();
+    establecerFechaMinima();
+  });
+
+  function establecerFechaMinima() {
+    const hoy = new Date().toISOString().split('T')[0];
+    document.getElementById('nuevaCitaFecha').min = hoy;
+    document.getElementById('editarCitaFecha').min = hoy;
+  }
+
+  async function cargarDatos() {
+    try {
+      const [citasRes, pacientesRes, medicosRes] = await Promise.all([
+        fetch(`${API_URL}/citas`).then(r => r.json()),
+        fetch(`${API_URL}/pacientes/activos`).then(r => r.json()),
+        fetch(`${API_URL}/medicos/activos`).then(r => r.json())
+      ]);
+
+      citasData = citasRes;
+      pacientesData = pacientesRes;
+      medicosData = medicosRes;
+
+      llenarSelects();
+      renderizarTablaCitas(citasData);
+      actualizarEstadisticas();
+    } catch (error) {
+      mostrarNotificacion('Error al cargar los datos del servidor', 'error');
+    }
+  }
+
+  function llenarSelects() {
+    // Llenar select de pacientes
+    const selectsPaciente = ['nuevaCitaPaciente', 'filtroPaciente'];
+    selectsPaciente.forEach(id => {
+      const select = document.getElementById(id);
+      const opciones = id === 'filtroPaciente'
+              ? '<option value="">Todos</option>'
+              : '<option value="">Seleccione un paciente</option>';
+      select.innerHTML = opciones + pacientesData.map(p =>
+              `<option value="${p.idPaciente}">${p.nombres} ${p.apellidos} - DNI: ${p.dni}</option>`
+      ).join('');
+    });
+
+    // Llenar select de médicos
+    const selectsMedico = ['nuevaCitaMedico'];
+    selectsMedico.forEach(id => {
+      const select = document.getElementById(id);
+      select.innerHTML = '<option value="">Seleccione un médico</option>' + medicosData.map(m =>
+              `<option value="${m.idMedico}">Dr(a). ${m.nombres} ${m.apellidos} - ${m.especialidad || 'General'}</option>`
+      ).join('');
+    });
+  }
+
+  function renderizarTablaCitas(citas) {
+    const tbody = document.getElementById('tablaCitas');
+
+    if (citas.length === 0) {
+      tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center">
+                            <svg class="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                            <p class="text-gray-500 font-medium text-lg">No se encontraron citas</p>
+                            <p class="text-gray-400 text-sm mt-1">Intenta ajustar los filtros o registra una nueva cita</p>
+                        </td>
+                    </tr>
+                `;
+      return;
+    }
+
+    tbody.innerHTML = citas.map(cita => {
+      const estadoConfig = {
+        'programada': { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+        'atendida': { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+        'cancelada': { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' }
+      }[cita.estado] || { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200' };
+
+      return `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-sm font-bold text-blue-600">#${cita.idCita}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">${cita.paciente.nombres} ${cita.paciente.apellidos}</div>
+                                    <div class="text-xs text-gray-500">DNI: ${cita.paciente.dni}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">Dr(a). ${cita.medico.nombres} ${cita.medico.apellidos}</div>
+                            <div class="text-xs text-gray-500">${cita.medico.especialidad || 'General'}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center gap-2 text-sm text-gray-900">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                ${formatearFecha(cita.fecha)}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center gap-2 text-sm text-gray-900">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                ${cita.hora}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${estadoConfig.bg} ${estadoConfig.text} ${estadoConfig.border}">
+                                ${cita.estado.charAt(0).toUpperCase() + cita.estado.slice(1)}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            ${cita.estado === 'programada' ? `
+                                <div class="flex items-center gap-2">
+                                    <button onclick="abrirModalEditar(${cita.idCita})" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Reprogramar">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                    </button>
+                                    <button onclick="marcarAtendida(${cita.idCita})" class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all" title="Marcar atendida">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    </button>
+                                    <button onclick="cancelarCita(${cita.idCita})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Cancelar">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            ` : '<span class="text-gray-400">-</span>'}
+                        </td>
+                    </tr>
+                `;
+    }).join('');
+  }
+
+  function aplicarFiltros() {
+    const busqueda = document.getElementById('filtroBusqueda').value.toLowerCase();
+    const estado = document.getElementById('filtroEstado').value;
+    const fecha = document.getElementById('filtroFecha').value;
+    const paciente = document.getElementById('filtroPaciente').value;
+
+    let citasFiltradas = citasData.filter(cita => {
+      const matchBusqueda = !busqueda ||
+              `${cita.paciente.nombres} ${cita.paciente.apellidos}`.toLowerCase().includes(busqueda) ||
+              `${cita.medico.nombres} ${cita.medico.apellidos}`.toLowerCase().includes(busqueda);
+      const matchEstado = !estado || cita.estado === estado;
+      const matchFecha = !fecha || cita.fecha === fecha;
+      const matchPaciente = !paciente || cita.paciente.idPaciente == paciente;
+
+      return matchBusqueda && matchEstado && matchFecha && matchPaciente;
+    });
+
+    renderizarTablaCitas(citasFiltradas);
+  }
+
+  async function guardarCita(event) {
+    event.preventDefault();
+
+    const cita = {
+      paciente: { idPaciente: document.getElementById('nuevaCitaPaciente').value },
+      medico: { idMedico: document.getElementById('nuevaCitaMedico').value },
+      fecha: document.getElementById('nuevaCitaFecha').value,
+      hora: document.getElementById('nuevaCitaHora').value,
+      motivo: document.getElementById('nuevaCitaMotivo').value,
+      estado: 'programada'
+    };
+
+    try {
+      const response = await fetch(`${API_URL}/citas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cita)
+      });
+
+      if (response.ok) {
+        mostrarNotificacion('Cita registrada exitosamente', 'success');
+        limpiarFormulario();
+        await cargarDatos();
+        cambiarTab('lista');
+      } else {
+        const error = await response.json();
+        mostrarNotificacion(error.error || 'Error al registrar la cita', 'error');
+      }
+    } catch (error) {
+      mostrarNotificacion('Error de conexión con el servidor', 'error');
+    }
+  }
+
+  function limpiarFormulario() {
+    document.getElementById('formNuevaCita').reset();
+  }
+
+  function abrirModalEditar(idCita) {
+    const cita = citasData.find(c => c.idCita === idCita);
+    if (cita) {
+      document.getElementById('editarCitaId').value = idCita;
+      document.getElementById('editarCitaFecha').value = cita.fecha;
+      document.getElementById('editarCitaHora').value = cita.hora;
+      document.getElementById('modalReprogramar').classList.remove('hidden');
+    }
+  }
+
+  function cerrarModal() {
+    document.getElementById('modalReprogramar').classList.add('hidden');
+    document.getElementById('formReprogramar').reset();
+  }
+
+  async function reprogramarCita(event) {
+    event.preventDefault();
+
+    const idCita = document.getElementById('editarCitaId').value;
+    const fecha = document.getElementById('editarCitaFecha').value;
+    const hora = document.getElementById('editarCitaHora').value;
+
+    try {
+      const response = await fetch(
+              `${API_URL}/citas/${idCita}/reprogramar?fecha=${fecha}&hora=${hora}`,
+              { method: 'PATCH' }
+      );
+
+      if (response.ok) {
+        mostrarNotificacion('Cita reprogramada exitosamente', 'success');
+        cerrarModal();
+        await cargarDatos();
+      } else {
+        const error = await response.json();
+        mostrarNotificacion(error.error || 'Error al reprogramar', 'error');
+      }
+    } catch (error) {
+      mostrarNotificacion('Error de conexión', 'error');
+    }
+  }
+
+  async function marcarAtendida(idCita) {
+    if (!confirm('¿Confirmar que la cita fue atendida?')) return;
+
+    try {
+      const response = await fetch(`${API_URL}/citas/${idCita}/atender`, {
+        method: 'PATCH'
+      });
+
+      if (response.ok) {
+        mostrarNotificacion('Cita marcada como atendida', 'success');
+        await cargarDatos();
+      } else {
+        const error = await response.json();
+        mostrarNotificacion(error.error || 'Error al marcar como atendida', 'error');
+      }
+    } catch (error) {
+      mostrarNotificacion('Error de conexión', 'error');
+    }
+  }
+
+  async function cancelarCita(idCita) {
+    if (!confirm('¿Está seguro de cancelar esta cita?')) return;
+
+    try {
+      const response = await fetch(`${API_URL}/citas/${idCita}/cancelar`, {
+        method: 'PATCH'
+      });
+
+      if (response.ok) {
+        mostrarNotificacion('Cita cancelada exitosamente', 'success');
+        await cargarDatos();
+      } else {
+        const error = await response.json();
+        mostrarNotificacion(error.error || 'Error al cancelar', 'error');
+      }
+    } catch (error) {
+      mostrarNotificacion('Error de conexión', 'error');
+    }
+  }
+
+  function actualizarEstadisticas() {
+    const total = citasData.length;
+    const programadas = citasData.filter(c => c.estado === 'programada').length;
+    const atendidas = citasData.filter(c => c.estado === 'atendida').length;
+    const canceladas = citasData.filter(c => c.estado === 'cancelada').length;
+
+    document.getElementById('totalCitas').textContent = total;
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statProgramadas').textContent = programadas;
+    document.getElementById('statAtendidas').textContent = atendidas;
+    document.getElementById('statCanceladas').textContent = canceladas;
+
+    // Renderizar gráfico de barras
+    const maxValue = Math.max(programadas, atendidas, canceladas, 1);
+    const grafico = document.getElementById('graficoEstados');
+
+    grafico.innerHTML = `
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-700">Programadas</span>
+                        <span class="text-sm font-bold text-amber-600">${programadas}</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-4 overflow-hidden">
+                        <div class="bg-gradient-to-r from-amber-400 to-amber-600 h-4 rounded-full transition-all duration-500" style="width: ${(programadas/maxValue)*100}%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-700">Atendidas</span>
+                        <span class="text-sm font-bold text-emerald-600">${atendidas}</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-4 overflow-hidden">
+                        <div class="bg-gradient-to-r from-emerald-400 to-emerald-600 h-4 rounded-full transition-all duration-500" style="width: ${(atendidas/maxValue)*100}%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-700">Canceladas</span>
+                        <span class="text-sm font-bold text-rose-600">${canceladas}</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-4 overflow-hidden">
+                        <div class="bg-gradient-to-r from-rose-400 to-rose-600 h-4 rounded-full transition-all duration-500" style="width: ${(canceladas/maxValue)*100}%"></div>
+                    </div>
+                </div>
+            `;
+  }
+
+  function cambiarTab(tab) {
+    // Ocultar todos los contenidos
+    document.querySelectorAll('.tab-content').forEach(content => {
+      content.classList.remove('active');
+    });
+
+    // Remover estilos activos de todos los tabs
+    document.querySelectorAll('[id^="tab-"]').forEach(btn => {
+      btn.classList.remove('bg-blue-600', 'text-white');
+      btn.classList.add('text-gray-600', 'hover:bg-gray-50');
+    });
+
+    // Mostrar contenido seleccionado
+    document.getElementById(`content-${tab}`).classList.add('active');
+
+    // Activar tab seleccionado
+    const activeTab = document.getElementById(`tab-${tab}`);
+    activeTab.classList.add('bg-blue-600', 'text-white');
+    activeTab.classList.remove('text-gray-600', 'hover:bg-gray-50');
+
+    // Si es estadísticas, actualizar datos
+    if (tab === 'estadisticas') {
+      actualizarEstadisticas();
+    }
+  }
+
+  function formatearFecha(fecha) {
+    const [year, month, day] = fecha.split('-');
+    return `${day}/${month}/${year}`;
+  }
+
+  function mostrarNotificacion(mensaje, tipo) {
+    const colores = {
+      success: 'bg-green-500',
+      error: 'bg-red-500',
+      warning: 'bg-yellow-500',
+      info: 'bg-blue-500'
+    };
+
+    const iconos = {
+      success: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`,
+      error: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`,
+      warning: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`,
+      info: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
+    };
+
+    const notificacion = document.createElement('div');
+    notificacion.className = `notification ${colores[tipo]} text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3`;
+    notificacion.innerHTML = `
+                ${iconos[tipo]}
+                <span class="font-medium">${mensaje}</span>
+            `;
+
+    document.getElementById('notificaciones').appendChild(notificacion);
+
+    setTimeout(() => {
+      notificacion.style.opacity = '0';
+      notificacion.style.transform = 'translateX(400px)';
+      notificacion.style.transition = 'all 0.3s ease-out';
+      setTimeout(() => notificacion.remove(), 300);
+    }, 3000);
+  }
+
+  // Cerrar modal al hacer clic fuera
+  document.getElementById('modalReprogramar').addEventListener('click', function(e) {
+    if (e.target === this) {
+      cerrarModal();
+    }
+  });
+</script>
+</body>
+</html>
