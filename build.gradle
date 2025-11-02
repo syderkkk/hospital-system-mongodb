@@ -6,7 +6,7 @@ plugins {
 
 group = 'pe.edu.tecsup'
 version = '0.0.1-SNAPSHOT'
-description = 'hospital-system'
+description = 'hospital-system-mongodb'
 
 java {
     toolchain {

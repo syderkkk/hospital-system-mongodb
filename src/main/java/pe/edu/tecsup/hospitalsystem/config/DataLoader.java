@@ -37,7 +37,7 @@ public class DataLoader implements CommandLineRunner {
         }
 
         if (citaRepository.count() == 0) {
-            cargarCitas();
+            //cargarCitas();
         }
     }
 

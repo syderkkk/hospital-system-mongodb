@@ -47,6 +47,13 @@
       display: block;
       animation: fadeIn 0.3s ease-out;
     }
+
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
   </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -170,7 +177,7 @@
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
           <tr>
-            <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">ID</th>
+            <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Motivo</th>
             <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Paciente</th>
             <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Médico</th>
             <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Fecha</th>
@@ -426,10 +433,10 @@
   }
 
   function renderizarTablaCitas(citas) {
-    const tbody = document.getElementById('tablaCitas');
+      const tbody = document.getElementById('tablaCitas');
 
-    if (citas.length === 0) {
-      tbody.innerHTML = `
+      if (citas.length === 0) {
+          tbody.innerHTML = `
                     <tr>
                         <td colspan="7" class="px-6 py-12 text-center">
                             <svg class="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -440,20 +447,27 @@
                         </td>
                     </tr>
                 `;
-      return;
-    }
+          return;
+      }
 
-    tbody.innerHTML = citas.map(cita => {
-      const estadoConfig = {
-        'programada': { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
-        'atendida': { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-        'cancelada': { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' }
-      }[cita.estado] || { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200' };
+      tbody.innerHTML = citas.map(cita => {
+          const estadoConfig = {
+              'programada': { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+              'atendida': { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+              'cancelada': { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' }
+          }[cita.estado] || { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200' };
 
-      return `
+          return `
                     <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="text-sm font-bold text-blue-600">#${cita.idCita}</span>
+                        <td class="px-6 py-4">
+                            <div class="flex items-start gap-2 max-w-xs">
+                                <svg class="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <span class="text-sm text-gray-700 line-clamp-2" title="${cita.motivo || 'Sin motivo especificado'}">
+                                    ${cita.motivo || '<span class="text-gray-400 italic">Sin motivo</span>'}
+                                </span>
+                            </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center gap-3">
@@ -496,17 +510,17 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             ${cita.estado === 'programada' ? `
                                 <div class="flex items-center gap-2">
-                                    <button onclick="abrirModalEditar(${cita.idCita})" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Reprogramar">
+                                    <button onclick="abrirModalEditar('${cita.idCita}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Reprogramar">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                         </svg>
                                     </button>
-                                    <button onclick="marcarAtendida(${cita.idCita})" class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all" title="Marcar atendida">
+                                    <button onclick="marcarAtendida('${cita.idCita}')" class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all" title="Marcar atendida">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                         </svg>
                                     </button>
-                                    <button onclick="cancelarCita(${cita.idCita})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Cancelar">
+                                    <button onclick="cancelarCita('${cita.idCita}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Cancelar">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                         </svg>
@@ -516,7 +530,7 @@
                         </td>
                     </tr>
                 `;
-    }).join('');
+      }).join('');
   }
 
   function aplicarFiltros() {
